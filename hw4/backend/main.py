@@ -11,8 +11,9 @@ Run from the backend folder:
 from __future__ import annotations
 
 import logging
+import sqlite3
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -55,6 +56,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# The sessions table is additive and safe to create on every boot.
+db.ensure_schema()
+
+
+def current_user(authorization: str | None) -> sqlite3.Row | None:
+    """Resolve the caller from their session token, or None for a guest.
+
+    This is the single place identity is established. Nothing reads a `user_id` supplied
+    by the client, so one shopper cannot act as another by editing a request.
+    """
+    token = auth.bearer_token(authorization)
+    if not token:
+        return None
+    return db.get_session_user(auth.hash_session_token(token))
+
+
+def require_user(authorization: str | None) -> sqlite3.Row:
+    """Same, but 401 when the caller is not signed in."""
+    user = current_user(authorization)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Please log in again.")
+    return user
+
 
 # Product photos live outside the repo (data/ is gitignored) and are served from disk.
 if db.PRODUCT_IMAGE_DIR.exists():
@@ -142,9 +167,12 @@ def signup(request: SignupRequest) -> AuthResponse:
         email=email,
         password_hash=auth.hash_password(request.password),
     )
+    token = auth.new_session_token()
+    db.create_session(auth.hash_session_token(token), user["id"])
     return AuthResponse(
         user=PublicUser(**user),
         message=f"Welcome to Campus Customs, {user['first_name']}!",
+        session_token=token,
     )
 
 
@@ -165,18 +193,39 @@ def login(request: LoginRequest) -> AuthResponse:
 
     user = db.public_user(row)
     greeting = user["first_name"] or user["name"]
-    return AuthResponse(user=PublicUser(**user), message=f"Welcome back, {greeting}!")
+    token = auth.new_session_token()
+    db.create_session(auth.hash_session_token(token), user["id"])
+    return AuthResponse(
+        user=PublicUser(**user),
+        message=f"Welcome back, {greeting}!",
+        session_token=token,
+    )
+
+
+@app.post("/api/logout", status_code=204)
+def logout(authorization: str | None = Header(default=None)) -> None:
+    """Invalidate the caller's session so the token stops working."""
+    token = auth.bearer_token(authorization)
+    if token:
+        db.delete_session(auth.hash_session_token(token))
+
+
+@app.get("/api/me", response_model=PublicUser)
+def me(authorization: str | None = Header(default=None)) -> PublicUser:
+    """Who the session token belongs to. Used by the browser to re-validate on load."""
+    return PublicUser(**db.public_user(require_user(authorization)))
 
 
 # --------------------------------------------------------------------------------- chat
 
 
-def _build_deps(request: ChatRequest) -> tuple[ChatDeps, bool]:
+def _build_deps(request: ChatRequest, user: sqlite3.Row | None) -> tuple[ChatDeps, bool]:
     """Assemble the agent's context: who is chatting, and where they are.
 
-    Identity is looked up in the database from `user_id`. Nothing about the shopper is
-    taken from the request body, so a browser cannot claim to be another customer by
-    editing a name or email field. Returns the deps and whether the shopper is signed in.
+    `user` has already been resolved from the session token by `current_user()`. Nothing
+    about the shopper comes from the request body - not a name, not an email, and not an
+    id - so a browser cannot act as another customer by editing a request. Returns the
+    deps and whether the shopper is signed in.
     """
     context = request.page_context or PageContext()
 
@@ -199,29 +248,27 @@ def _build_deps(request: ChatRequest) -> tuple[ChatDeps, bool]:
         garment_type=context.garment_type,
     )
 
-    # Who they are.
-    if request.user_id is not None:
-        user = db.get_user_by_id(request.user_id)
-        if user is not None:
-            deps.user_id = int(user["id"])
-            deps.first_name = user["first_name"] or user["name"]
-            deps.full_name = user["name"]
-            deps.email = user["email"]
-            deps.is_logged_in = True
+    # Who they are, straight from the authenticated session.
+    if user is not None:
+        deps.user_id = int(user["id"])
+        deps.first_name = user["first_name"] or user["name"]
+        deps.full_name = user["name"]
+        deps.email = user["email"]
+        deps.is_logged_in = True
 
     return deps, deps.is_logged_in
 
 
 @app.get("/api/chat/history", response_model=ChatHistoryResponse)
-def chat_history(user_id: int = Query(..., description="The signed-in shopper's id")) -> ChatHistoryResponse:
-    """Reload a signed-in shopper's saved conversation.
+def chat_history(authorization: str | None = Header(default=None)) -> ChatHistoryResponse:
+    """Reload the **caller's own** saved conversation.
 
-    Guests have no history to return: nothing is stored for them, so there is nothing to
-    look up. A `user_id` that does not exist is a 404 rather than an empty conversation,
-    so a stale browser session is visible instead of silently looking like a new shopper.
+    The account is taken from the session token, never from a parameter, so this endpoint
+    can only ever return the history of whoever is actually signed in. A caller with no
+    valid session gets a 401 rather than somebody else's transcript.
     """
-    if db.get_user_by_id(user_id) is None:
-        raise HTTPException(status_code=404, detail="No such account.")
+    user = require_user(authorization)
+    user_id = int(user["id"])
 
     messages = [
         ChatHistoryMessage(
@@ -237,7 +284,9 @@ def chat_history(user_id: int = Query(..., description="The signed-in shopper's 
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
+async def chat(
+    request: ChatRequest, authorization: str | None = Header(default=None)
+) -> ChatResponse:
     """One shopper turn, answered by the PydanticAI agent.
 
     For a signed-in shopper, both sides of the turn are written to `chat_messages`, and
@@ -252,7 +301,7 @@ async def chat(request: ChatRequest) -> ChatResponse:
         audit.log_run_end(run_id, "empty_message")
         raise HTTPException(status_code=422, detail="Message cannot be empty.")
 
-    deps, logged_in = _build_deps(request)
+    deps, logged_in = _build_deps(request, current_user(authorization))
     deps.run_id = run_id
 
     # Past turns, so the agent remembers the conversation. Read before the new message is

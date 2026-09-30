@@ -15,14 +15,21 @@ means read-modify-write, which is correct for one Uvicorn process; a multi-proce
 deployment would want JSON Lines instead, and `SUMMARY_LIMIT` keeps each record small
 enough that re-serialising stays cheap.
 
-Nothing sensitive is written: no passwords (the agent never sees one), no email addresses,
-and message text is truncated. Shoppers are identified by `user_id` only.
+What is kept out: no passwords (the agent never sees one), and **no email addresses** -
+every string is run through `mask_pii()` on the way in, so an address cannot reach the
+trail even when the model repeats one back in a reply. Message and reply text is truncated
+to `SUMMARY_LIMIT`. Shoppers are identified by `user_id`.
+
+One honest caveat: a shopper's own first name can still appear inside their own reply text
+("Welcome back, Test"), because the agent is told to greet them by it. That is their own
+name in their own conversation, scoped to their own `user_id`.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -37,6 +44,17 @@ AUDIT_PATH = BACKEND_DIR.parent / "output" / "audit_trail.json"
 SUMMARY_LIMIT = 160
 
 _lock = threading.Lock()
+
+# Emails reach the trail through free text - a reply that answers "what email do you have
+# for me?" - not through any field called `email`. Masking on the way in is what makes the
+# "no email addresses" promise true by construction rather than by luck.
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+EMAIL_PLACEHOLDER = "[redacted-email]"
+
+
+def mask_pii(text: str) -> str:
+    """Replace any email address in a string before it is written to the trail."""
+    return _EMAIL_RE.sub(EMAIL_PLACEHOLDER, text)
 
 
 def new_run_id() -> str:
@@ -57,7 +75,7 @@ def summarise(value: Any, limit: int = SUMMARY_LIMIT) -> Any:
     if value is None or isinstance(value, (bool, int, float)):
         return value
     if isinstance(value, str):
-        text = " ".join(value.split())
+        text = mask_pii(" ".join(value.split()))
         return text if len(text) <= limit else text[:limit] + "..."
     if isinstance(value, dict):
         return {key: summarise(item, 60) for key, item in list(value.items())[:8]}

@@ -46,7 +46,7 @@ export default function CreateAccount() {
         email: form.email,
         password: form.password,
       })
-      signIn(result.user)
+      signIn(result.user, result.session_token)
       navigate('/products')
     } catch (cause) {
       setError((cause as Error).message)

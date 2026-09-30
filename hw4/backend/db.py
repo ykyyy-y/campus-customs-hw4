@@ -413,6 +413,81 @@ def public_user(row: sqlite3.Row) -> dict[str, Any]:
     return _row_to_user(row)
 
 
+# ------------------------------------------------------------------------ sessions
+
+
+def ensure_schema() -> None:
+    """Create the `sessions` table if it is not there yet.
+
+    The provided database predates login sessions, so this is additive: no existing table
+    is touched, and running it twice is harmless.
+    """
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                token_hash TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                last_seen_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def create_session(token_hash: str, user_id: int) -> None:
+    """Record a new session. Only the hash of the token is stored, never the token."""
+    conn = get_connection()
+    try:
+        conn.execute(
+            "INSERT OR REPLACE INTO sessions (token_hash, user_id, last_seen_at) "
+            "VALUES (?, ?, datetime('now'))",
+            (token_hash, int(user_id)),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_session_user(token_hash: str) -> sqlite3.Row | None:
+    """Resolve a session token hash to its account, or None if it is not a live session.
+
+    This is the only way a request can establish who is calling. `user_id` from a request
+    body or query string is never trusted.
+    """
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id "
+            "WHERE s.token_hash = ?",
+            (token_hash,),
+        ).fetchone()
+        if row is not None:
+            conn.execute(
+                "UPDATE sessions SET last_seen_at = datetime('now') WHERE token_hash = ?",
+                (token_hash,),
+            )
+            conn.commit()
+        return row
+    finally:
+        conn.close()
+
+
+def delete_session(token_hash: str) -> None:
+    """Log out: forget the session so the token stops working."""
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # -------------------------------------------------------------------- chat history
 
 # How many past turns to reload. Enough for a conversation to feel continuous without

@@ -307,11 +307,38 @@ and document all three in the harness.
 
 ### Follow-up prompt
 
-No follow-up prompt was needed; the first prompt was sufficient. It named the table to use,
-the reload requirement, the deps pattern for customer identity, the exact "do you have this
-in pink?" scenario to make work, the guest rule, and the three things to document — which
-together determined the design: identity is resolved from the database by `user_id` so a
-browser cannot claim to be another customer, stored turns are replayed as message history
+**A follow-up prompt was needed here — this is the one place in the assignment where the
+first prompt was not enough.**
+
+> [main.py (line 203)]가 클라이언트가 보낸 user_id를 그대로 신뢰하고, [auth.tsx (line 27)]도
+> 사용자 정보를 localStorage에만 저장합니다. 따라서 사용자가 다른 user_id를 보내면 다른
+> 사용자의 history를 조회하거나 채팅을 저장할 수 있습니다. 과제의 기본 기능 채점은 통과할
+> 가능성이 높지만, P8/P12의 "customer isolation" 안전성에서 지적될 수 있습니다.
+>
+> is this right? what do you think, at this moment, do not fix any file or content yet
+
+> okay fix and update to get the things orgaznied, but make sure you should have all the
+> other things that I requested you to do
+
+**What was lacking after the first prompt:** the first prompt said the agent should know who
+is chatting, and it was implemented by trusting a `user_id` in the request body — which
+verified that the account *existed* but never that it belonged to the caller, so
+`GET /api/chat/history?user_id=3` returned another shopper's entire transcript with no
+credentials and a forged `user_id` made the agent disclose that customer's name and email.
+The critique was correct and the consequence was worse than it stated. It is now fixed with
+real session authentication: login issues a 256-bit random token (only its SHA-256 is
+stored in a new `sessions` table), the browser returns it as `Authorization: Bearer …`,
+`user_id` was removed from `ChatRequest` and from the history endpoint entirely, logout
+deletes the session so a captured token cannot be replayed, and the cached browser identity
+is re-validated against `/api/me` on load. Every attack that previously worked now returns
+`401` or is treated as a guest.
+
+### What the original build got right
+
+Beyond the identity flaw, the first prompt named the table to use, the reload requirement,
+the deps pattern for customer identity, the exact "do you have this in pink?" scenario to
+make work, the guest rule, and the three things to document — which
+together determined the rest of the design: stored turns are replayed as message history
 with only their text so old prices cannot be reused as current, and a browser-supplied
 `product_id` is validated against the catalogue before it reaches the agent. Two real
 search bugs surfaced during self-testing rather than from a follow-up prompt: the agent
@@ -487,8 +514,96 @@ located the fault in the post-run block — `result.usage()` called as a method 
 is a property on `AgentRunResult` — and that block is now inside the guard so the same class
 of failure would be recorded as `agent_error`.
 
+**Two claims in this problem later had to be corrected, both after follow-up prompts.**
+
+1. The guard table originally read *"Identity cannot be spoofed — `ChatRequest` has no
+   name/email; looked up from `user_id`"*. The first clause was true but the conclusion was
+   not, because `user_id` itself came from the client. See the follow-up recorded under
+   **Problem 8**, which replaced that with real session authentication.
+
+2. A second follow-up:
+
+   > 공개된 audit_trail.json에 이메일 주소가 2개 포함되어 있습니다. 그런데 audit.py와
+   > harness에는 이메일을 기록하지 않는다고 설명되어 있습니다. … 이메일을
+   > [redacted-email]로 마스킹하고 audit 기록 생성 함수에도 이메일 마스킹을 추가한 뒤 한 번
+   > 더 push하는 것을 권합니다.
+
+   **What was lacking:** `audit.py` and the harness both promised "no email addresses", but
+   that was written thinking about *fields* — and there is no email field. Emails reach the
+   trail through **free text**, so a reply answering "what email do you have for me?"
+   carried one straight into the committed file. Two addresses were in the published trail,
+   one of them a real person's, produced while security-testing the `user_id` flaw in the
+   Problem 8 follow-up. Fixed by masking every string at the one point they all pass
+   through (`audit.mask_pii()`), so the promise is now true by construction rather than by
+   luck.
+
+   The redaction was done in a way that keeps the problem's own "append-only, do not wipe"
+   rule: the sensitive substrings were replaced **in place**, no record was deleted and the
+   file was not reset, and a `redaction` record was then **appended** naming the fields
+   changed and why — because an audit trail that has been edited should say so in the trail
+   itself, not only in a commit message.
+
 ---
 
-## Problem 13 — *(pending)*
+## Problem 13 — Push to GitHub and Submit the URL
 
-*This section will be filled in when Problem 13 is assigned.*
+Put the project in a folder named `hw4`, push it to a public GitHub repository matching the
+required file layout, keep the real `.env`, database and product images out of the repo via
+`.gitignore`, include a placeholder `.env.example`, and write a `README.md` explaining how
+to run the front end and back end after placing the data pack.
+
+**Repository:** https://github.com/ykyyy-y/campus-customs-hw4
+
+### Prompt I typed
+
+> now going to problem 13: push to github and submit the url
+> I am logined at the github.
+> put all our code in a folder named `hw4` and push it to a public github repository. do
+> not put the real `.env`, `campus_customs.db`, or product images in the github repo. use
+> `.gitignore` to exclude them, and include `.env.example` with placeholders only.
+> make sure the repo matches this exact file layout:
+>
+> ```
+> hw4/
+> ├── AI_prompts.md
+> ├── requirements.txt
+> ├── .env.example
+> ├── .gitignore
+> ├── README.md
+> ├── frontend/             # Vite React TypeScript app
+> ├── backend/              # FastAPI app — run with: uvicorn main:app --reload --port8000
+> │   ├── main.py
+> │   ├── agent.py
+> │   ├── models.py
+> │   ├── tools.py
+> │   └── prompts/
+> │       └── prompt.md
+> └── output/
+>     ├── harness.md
+>     ├── design.md
+>     ├── usability.md
+>     ├── app_check.html
+>     ├── app_check_images/ # screenshots linked from app_check.html
+>     └── audit_trail.json
+> ```
+>
+> the agent itself is four files under backend/; prompts/prompt.md, agent.py, tools.py, and
+> models.py README.md should explain how to run the front end and back end after placing
+> the data pack
+
+### Follow-up prompt
+
+No follow-up prompt was needed; the first prompt was sufficient. It gave the exact tree, the
+three things that must never be committed, the requirement for placeholder-only
+`.env.example`, and what the README had to cover — so `requirements.txt` was moved from
+`backend/` to the `hw4/` root to match the diagram, the repository was staged in a clean
+folder rather than pushed from the working directory (which holds `.venv`, `node_modules`
+and the data pack), and the exclusions were verified rather than assumed: the staged tree
+was scanned for `.env`, `.db`, `data/`, product `.jpg`s and build directories, and the real
+`PORTKEY_API_KEY` value was grepped for across every staged file and found in **zero** of
+them. After pushing, the published repository was re-checked from the outside — the tree was
+read back from the GitHub API, and unauthenticated requests confirmed the repo and README
+return `200` while `.env` and `campus_customs.db` return `404`.
+
+The repository was pushed again after the Problem 8 follow-up, so the published code
+includes the session-authentication fix and the corrected documentation.

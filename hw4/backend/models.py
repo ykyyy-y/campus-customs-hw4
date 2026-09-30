@@ -76,8 +76,15 @@ class PublicUser(BaseModel):
 
 
 class AuthResponse(BaseModel):
+    """Answer to a successful sign-up or sign-in.
+
+    `session_token` is the only thing that proves who a later request is from. The browser
+    stores it and sends it back as `Authorization: Bearer <token>`.
+    """
+
     user: PublicUser
     message: str
+    session_token: str
 
 
 # ------------------------------------------------------------------------------- chat
@@ -106,10 +113,14 @@ class PageContext(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """A shopper turn from the website."""
+    """A shopper turn from the website.
+
+    There is deliberately **no `user_id`** here. Identity comes only from the session
+    token in the Authorization header, so a browser cannot read or write another
+    shopper's conversation by changing a number in the request body.
+    """
 
     message: str = Field(min_length=1, max_length=2000)
-    user_id: int | None = None
     page_context: PageContext | None = None
 
 

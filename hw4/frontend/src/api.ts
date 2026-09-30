@@ -11,10 +11,23 @@ import type {
   ChatReply,
   PageContext,
   Product,
+  PublicUser,
 } from './types'
 
+/** The live session token, held here so every request can attach it. */
+let sessionToken: string | null = null
+
+export function setSessionToken(token: string | null) {
+  sessionToken = token
+}
+
+/** `Authorization: Bearer <token>` when signed in, nothing when browsing as a guest. */
+function authHeaders(): Record<string, string> {
+  return sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}
+}
+
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(path)
+  const response = await fetch(path, { headers: authHeaders() })
   if (!response.ok) {
     throw new Error(
       response.status === 404
@@ -49,7 +62,7 @@ export function fetchStats() {
 async function postJson<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
   })
   const payload = await response.json().catch(() => null)
@@ -77,20 +90,15 @@ export function login(input: { email: string; password: string }) {
   return postJson<AuthResponse>('/api/login', input)
 }
 
-/** Send one shopper turn, with who they are and where they are on the site. */
+/** Send one shopper turn. Who it is from comes from the session token, not the body. */
 export async function sendChatMessage(
   message: string,
-  userId?: number,
   pageContext?: PageContext,
 ): Promise<ChatReply> {
   const response = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message,
-      user_id: userId ?? null,
-      page_context: pageContext ?? null,
-    }),
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ message, page_context: pageContext ?? null }),
   })
   if (!response.ok) {
     throw new Error('The chat service is not reachable right now.')
@@ -98,7 +106,17 @@ export async function sendChatMessage(
   return (await response.json()) as ChatReply
 }
 
-/** Reload a signed-in shopper's saved conversation. Guests have none. */
-export function fetchChatHistory(userId: number) {
-  return getJson<ChatHistoryResponse>(`/api/chat/history?user_id=${userId}`)
+/** Reload the caller's own saved conversation. Guests have none. */
+export function fetchChatHistory() {
+  return getJson<ChatHistoryResponse>('/api/chat/history')
+}
+
+/** Confirm a stored token is still a live session, and get the account back. */
+export function fetchMe() {
+  return getJson<PublicUser>('/api/me')
+}
+
+/** Invalidate the session server-side so the token stops working. */
+export async function logout() {
+  await fetch('/api/logout', { method: 'POST', headers: authHeaders() })
 }

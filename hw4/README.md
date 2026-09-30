@@ -163,6 +163,10 @@ layers the app needs to run.
   as a strip on the Products page, and every card opens the same product detail view.
 - **Signed-in shoppers get memory.** Their conversation is saved to `chat_messages` and
   replayed when they return — text only, so an old price is never reused as current.
+- **Identity comes from a session token, never from the request.** Logging in issues a
+  256-bit random token (only its SHA-256 is stored) which the browser returns as
+  `Authorization: Bearer …`. Chat and history requests carry no user id, so one shopper
+  cannot read or write another's conversation.
 - **Page context travels with each message**, so "do you have this in pink?" on a product
   page resolves to that product.
 - **Every agent turn is audited** to `output/audit_trail.json`: tool calls, short arguments

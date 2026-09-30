@@ -68,6 +68,8 @@ export interface PublicUser {
 export interface AuthResponse {
   user: PublicUser
   message: string
+  /** Proves who later requests come from; sent back as `Authorization: Bearer <token>`. */
+  session_token: string
 }
 
 export type ChatRole = 'user' | 'assistant'

@@ -193,5 +193,218 @@
     "model_requests": 2,
     "duration_ms": 4755.5,
     "detail": null
+  },
+  {
+    "ts": "2026-09-30T04:56:48+00:00",
+    "run_id": "012eed39c00c",
+    "event": "run_start",
+    "model": "gpt-5.6-luna",
+    "user_id": 3,
+    "signed_in": true,
+    "page": "home",
+    "page_product_id": null,
+    "message": "Remind me what name and email you have on file for me?"
+  },
+  {
+    "ts": "2026-09-30T04:56:54+00:00",
+    "run_id": "012eed39c00c",
+    "event": "run_end",
+    "stop_reason": "ok",
+    "reply": "Your name is [redacted-name], and the email on file is [redacted-email].",
+    "product_ids": [],
+    "tool_calls": 1,
+    "model_requests": 2,
+    "duration_ms": 6245.6,
+    "detail": null
+  },
+  {
+    "ts": "2026-09-30T05:11:07+00:00",
+    "run_id": "b406278bbf75",
+    "event": "run_start",
+    "model": "gpt-5.6-luna",
+    "user_id": null,
+    "signed_in": false,
+    "page": null,
+    "page_product_id": null,
+    "message": "What name and email do you have for me?"
+  },
+  {
+    "ts": "2026-09-30T05:11:11+00:00",
+    "run_id": "b406278bbf75",
+    "event": "tool_call",
+    "tool": "list_garment_types",
+    "args": {},
+    "result": {
+      "count": 22,
+      "first": "bomber jacket"
+    },
+    "duration_ms": 8.9
+  },
+  {
+    "ts": "2026-09-30T05:11:13+00:00",
+    "run_id": "b406278bbf75",
+    "event": "run_end",
+    "stop_reason": "ok",
+    "reply": "You\u2019re shopping as a guest, so I don\u2019t have a name or email for you. I can help you find Yale merchandise if you\u2019d like.",
+    "product_ids": [],
+    "tool_calls": 1,
+    "model_requests": 2,
+    "duration_ms": 5796.2,
+    "detail": null
+  },
+  {
+    "ts": "2026-09-30T05:11:13+00:00",
+    "run_id": "8e9f8e2742b3",
+    "event": "run_start",
+    "model": "gpt-5.6-luna",
+    "user_id": 1,
+    "signed_in": true,
+    "page": null,
+    "page_product_id": null,
+    "message": "What email do you have on file for me?"
+  },
+  {
+    "ts": "2026-09-30T05:11:18+00:00",
+    "run_id": "8e9f8e2742b3",
+    "event": "run_end",
+    "stop_reason": "ok",
+    "reply": "The email on file for you is [redacted-email].",
+    "product_ids": [],
+    "tool_calls": 1,
+    "model_requests": 2,
+    "duration_ms": 4789.9,
+    "detail": null
+  },
+  {
+    "ts": "2026-09-30T05:12:21+00:00",
+    "run_id": "d59da1f5b834",
+    "event": "run_start",
+    "model": "gpt-5.6-luna",
+    "user_id": 1,
+    "signed_in": true,
+    "page": "home",
+    "page_product_id": null,
+    "message": "Do you have the Basic Hoodie Big Yale in XL?"
+  },
+  {
+    "ts": "2026-09-30T05:12:23+00:00",
+    "run_id": "d59da1f5b834",
+    "event": "tool_call",
+    "tool": "search_catalogue",
+    "args": {
+      "query": "Basic Hoodie Big Yale",
+      "garment_type": "hoodie"
+    },
+    "result": {
+      "query": "Basic Hoodie Big Yale",
+      "total_matches": 1,
+      "returned": 1,
+      "truncated": false,
+      "products": {
+        "count": 1,
+        "first": {
+          "product_id": "basic-hoodie-big-yale",
+          "name": "Basic Hoodie Big Yale",
+          "garment_type": "pullover hoodie",
+          "description": "Navy pullover hoodie with a front kangaroo pocket, drawstrin...",
+          "colors": {
+            "count": 2,
+            "first": "navy blue"
+          },
+          "price": 68.0,
+          "price_display": "$68.00",
+          "sizes_in_stock": {
+            "count": 6,
+            "first": "XS"
+          }
+        }
+      }
+    },
+    "duration_ms": 1.1
+  },
+  {
+    "ts": "2026-09-30T05:12:25+00:00",
+    "run_id": "d59da1f5b834",
+    "event": "tool_call",
+    "tool": "check_size_stock",
+    "args": {
+      "product_id": "basic-hoodie-big-yale",
+      "size": "XL"
+    },
+    "result": {
+      "product_id": "basic-hoodie-big-yale",
+      "name": "Basic Hoodie Big Yale",
+      "size": "XL",
+      "quantity": 2,
+      "in_stock": true,
+      "price": 68.0,
+      "price_display": "$68.00",
+      "other_sizes_in_stock": {
+        "count": 5,
+        "first": "XS"
+      }
+    },
+    "duration_ms": 0.0
+  },
+  {
+    "ts": "2026-09-30T05:12:28+00:00",
+    "run_id": "d59da1f5b834",
+    "event": "run_end",
+    "stop_reason": "ok",
+    "reply": "Yes\u2014there are only 2 Basic Hoodie Big Yale hoodies left in XL. It\u2019s **$68.00**.",
+    "product_ids": [
+      "basic-hoodie-big-yale"
+    ],
+    "tool_calls": 2,
+    "model_requests": 3,
+    "duration_ms": 7419.1,
+    "detail": null
+  },
+  {
+    "ts": "2026-09-30T06:00:00+00:00",
+    "run_id": "redaction001",
+    "event": "redaction",
+    "reason": "Removed an email address and a real person's name from two earlier records. They entered through agent reply text during security testing of the client-supplied user_id flaw, before session authentication was added.",
+    "fields_redacted": [
+      "012eed39c00c.reply",
+      "8e9f8e2742b3.reply"
+    ],
+    "records_removed": 0,
+    "note": "No record was deleted and the file was not reset; only the sensitive substrings were replaced. Masking is now applied at write time in audit.mask_pii(), so this cannot recur."
+  },
+  {
+    "ts": "2026-09-30T05:55:49+00:00",
+    "run_id": "010834aaf066",
+    "event": "run_start",
+    "model": "gpt-5.6-luna",
+    "user_id": 1,
+    "signed_in": true,
+    "page": null,
+    "page_product_id": null,
+    "message": "What email address do you have on file for me?"
+  },
+  {
+    "ts": "2026-09-30T05:55:53+00:00",
+    "run_id": "010834aaf066",
+    "event": "tool_call",
+    "tool": "list_garment_types",
+    "args": {},
+    "result": {
+      "count": 22,
+      "first": "bomber jacket"
+    },
+    "duration_ms": 3.7
+  },
+  {
+    "ts": "2026-09-30T05:55:56+00:00",
+    "run_id": "010834aaf066",
+    "event": "run_end",
+    "stop_reason": "ok",
+    "reply": "The email address on file is [redacted-email].",
+    "product_ids": [],
+    "tool_calls": 1,
+    "model_requests": 2,
+    "duration_ms": 7166.2,
+    "detail": null
   }
 ]

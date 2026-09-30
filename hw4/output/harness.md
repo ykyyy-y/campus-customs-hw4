@@ -253,8 +253,10 @@ Inter for body text.
 
 | Method | Route | Success | Failure |
 |---|---|---|---|
-| POST | `/api/signup` | `201` + `{user, message}` | `409` email taken, `422` password too short / bad email |
-| POST | `/api/login` | `200` + `{user, message}` | `401` wrong email **or** wrong password |
+| POST | `/api/signup` | `201` + `{user, message, session_token}` | `409` email taken, `422` password too short / bad email |
+| POST | `/api/login` | `200` + `{user, message, session_token}` | `401` wrong email **or** wrong password |
+| POST | `/api/logout` | `204`, session revoked | — |
+| GET | `/api/me` | `200` + the caller's account | `401` no valid session |
 
 ### 3.2 What we store for a user
 
@@ -271,6 +273,23 @@ table — the browser keeps the signed-in account in `localStorage` under
 | `created_at` | `datetime('now')` default | |
 | `first_name` | as typed, trimmed | Drives the "Hi, Handsome" greeting |
 | `last_name` | as typed, trimmed | |
+
+### 3.2b Sessions
+
+Logging in has to leave behind something a later request can *prove*. It writes a row to a
+`sessions` table (created additively by `db.ensure_schema()`; no provided table is touched):
+
+| Column | Written |
+|---|---|
+| `token_hash` | SHA-256 of a 256-bit random token from `secrets.token_urlsafe(32)` |
+| `user_id` | the account the session belongs to |
+| `created_at` / `last_seen_at` | issued and last-used timestamps |
+
+**Only the hash is stored**, so a stolen database yields no usable sessions for the same
+reason it yields no usable passwords. A plain SHA-256 is correct here rather than PBKDF2:
+the token is already 256 bits of randomness, so there is nothing to brute-force and no
+reason to make verification slow. Logging out **deletes** the row, so a captured token
+cannot be replayed.
 
 **What we deliberately do not store:** the plaintext password, in any form — not in the
 database, not in a log line, not in an error message, and not in any API response. The
@@ -778,7 +797,8 @@ meanings as the seeded rows, so replayed history and live history are indistingu
 shopper's message, then the reply with its cards. Writing *after* the answer is deliberate:
 a failed model call must not leave a question in the transcript with no reply under it.
 
-**Read path** (`GET /api/chat/history?user_id=`): the most recent 40 turns, oldest first.
+**Read path** (`GET /api/chat/history`, authenticated): the most recent 40 turns, oldest
+first, for **whoever holds the session token**. The endpoint takes no id parameter at all.
 Ordered by **`id`, not `created_at`** — `created_at` is only second-resolution, so two
 messages sent in the same second could come back reversed.
 
@@ -812,10 +832,19 @@ Via `ChatDeps`, injected as a `SHOPPER:` instruction block:
 | `user_id` | `users.id` | Scopes history; never spoken aloud |
 | `is_logged_in` | derived | Switches the whole instruction block |
 
-**Every one of these is looked up in the database from `user_id`. Nothing about the
-shopper is read from the request body.** A browser cannot claim to be another customer by
-editing a name or email field in the POST, because those fields do not exist in
-`ChatRequest` — only `user_id` does, and it is used as a database key.
+**All of these are resolved from the session token, not from the request.** `ChatRequest`
+contains no name, no email and **no id** — only the message and the page context — so there
+is nothing in the body a browser could edit to become someone else. `current_user()` in
+`main.py` is the single place identity is established, and it works by hashing the bearer
+token and looking the hash up in `sessions`.
+
+> **This was wrong until it was fixed.** The first version trusted a `user_id` sent in the
+> request body and only checked that such an account existed — which proves the user is
+> *real*, not that it is *you*. `GET /api/chat/history?user_id=3` returned another
+> shopper's 16 messages with no credentials, and posting with `user_id: 3` made the agent
+> disclose that customer's name and email. Note that the prompt's customer-isolation rule
+> was being followed faithfully the whole time; it simply had been handed a false premise.
+> Safety that depends on the model cannot compensate for missing authorization beneath it.
 
 Guests get an explicit counter-instruction: you do not know their name, do not guess it,
 do not press them to log in, and do not refer to a previous visit.
@@ -1023,10 +1052,34 @@ Three events, tied together by a short `run_id`:
 
 ### 10.4 What is deliberately not logged
 
-No passwords (the agent never sees one), no email addresses, no card or contact details.
-Shoppers are identified by `user_id` only, and message and reply text is truncated to 160
-characters. `/api/health` exposes counts and timestamps so the trail is visible without
-opening the file.
+No passwords (the agent never sees one) and **no email addresses**. Shoppers are identified
+by `user_id`, and message and reply text is truncated to 160 characters. `/api/health`
+exposes counts and timestamps so the trail is visible without opening the file.
+
+The email guarantee is enforced, not assumed. Every string written to the trail goes through
+`audit.mask_pii()`, which replaces any address with `[redacted-email]`. This matters because
+**emails reach the trail through free text, not through any field called `email`** — a reply
+answering "what email do you have for me?" is what carries one. The first version of this
+file claimed "no email addresses" while only checking that no *field* held one; two
+addresses duly turned up in the committed trail, one of them a real person's, from a reply
+produced while security-testing the `user_id` flaw. Both were redacted, masking was moved to
+the single point every string passes through, and the claim is now true by construction.
+
+Two honest caveats:
+
+- A shopper's **own first name** can still appear inside their own reply text ("Welcome
+  back, Test"), because the agent is told to greet them by it. That is their own name, in
+  their own conversation, scoped to their own `user_id`.
+- The committed trail is **development traffic**. A real deployment would be publishing
+  shopper messages, so the file would belong in `.gitignore` rather than in the repo.
+
+### 10.4b The one redaction, and why it did not break append-only
+
+The redaction replaced sensitive substrings *in place*: **no record was deleted and the file
+was not reset**, so all eight runs keep their timestamps, `run_id`s, tool calls and stop
+reasons. A `redaction` record was then **appended** naming the two fields changed and the
+reason — an audit trail that has been edited should say so in the trail itself, not only in
+a commit message.
 
 ### 10.5 Verified
 
@@ -1114,7 +1167,8 @@ Ten tools, all reading `campus_customs.db`. The agent has no other route to a pr
 | `get_product_on_screen()` | `ToolProduct` | They said "this" and are on a product page |
 | `list_garment_types()` | `list[str]` | "What kinds of things do you sell?" |
 
-**Abilities beyond tools:** per-request instructions inject `SHOPPER:` and `PAGE:` blocks;
+**Abilities beyond tools:** per-request instructions inject `SHOPPER:` and `PAGE:` blocks
+(the `SHOPPER:` block is filled from the authenticated session, never from the request);
 stored turns are replayed as `message_history` (text only, so old prices are never reused);
 and product ids are hydrated server-side into real cards.
 
@@ -1162,7 +1216,10 @@ false, and keep words and cards in agreement.
 |---|---|
 | Agent cannot emit a price or stock number onto a card | `AgentReply` returns ids only; `hydrate_products()` re-reads the database |
 | Unknown ids cannot become cards | dropped by `hydrate_products()` |
-| Identity cannot be spoofed | `ChatRequest` has no name/email; looked up from `user_id` |
+| Identity cannot be spoofed | Identity comes **only** from a session token; `ChatRequest` carries no name, email **or id** |
+| One shopper cannot read another's history | `/api/chat/history` takes no id — it returns the token holder's own transcript, or `401` |
+| A captured token cannot be replayed after logout | `POST /api/logout` deletes the session row |
+| A tampered browser cache cannot change identity | the cached account is re-validated against `/api/me` on load and overwritten |
 | Page context cannot be forged | browser `product_id` validated against the catalogue |
 | Passwords cannot leak | `PublicUser` has no password field |
 | Runaway loops cannot burn budget | `UsageLimits(request_limit=6, tool_calls_limit=6)` |

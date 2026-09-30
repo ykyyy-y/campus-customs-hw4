@@ -73,3 +73,40 @@ def password_problem(password: str) -> str | None:
 def normalize_email(email: str) -> str:
     """Emails are matched case-insensitively, so store and compare them lowercased."""
     return email.strip().lower()
+
+
+# --------------------------------------------------------------------------- sessions
+#
+# Logging in has to leave something behind that later requests can prove. Before this,
+# the browser simply sent `user_id` and the server believed it, which meant anyone could
+# read or write another shopper's chat history by changing one number.
+#
+# A session token is a long random string handed out at login. It is unguessable, it is
+# not derived from anything about the account, and only its hash is stored - so a stolen
+# database yields no usable sessions, for the same reason it yields no usable passwords.
+
+SESSION_TOKEN_BYTES = 32  # 256 bits of entropy
+
+
+def new_session_token() -> str:
+    """A fresh, unguessable session token to hand to the browser."""
+    return secrets.token_urlsafe(SESSION_TOKEN_BYTES)
+
+
+def hash_session_token(token: str) -> str:
+    """What we store for a session.
+
+    A plain SHA-256 is right here, unlike for passwords: the token is already 256 bits of
+    randomness, so there is nothing to brute-force and no need to make verification slow.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def bearer_token(authorization: str | None) -> str | None:
+    """Pull the token out of an `Authorization: Bearer <token>` header."""
+    if not authorization:
+        return None
+    parts = authorization.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return None
+    return parts[1].strip() or None

@@ -20,7 +20,7 @@ export default function LogIn() {
     setBusy(true)
     try {
       const result = await login({ email, password })
-      signIn(result.user)
+      signIn(result.user, result.session_token)
       navigate('/products')
     } catch (cause) {
       setError((cause as Error).message)

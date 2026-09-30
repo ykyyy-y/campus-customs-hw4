@@ -67,7 +67,7 @@ export default function ChatWidget() {
       return
     }
     let cancelled = false
-    fetchChatHistory(user.id)
+    fetchChatHistory()
       .then((history) => {
         if (cancelled) return
         if (history.messages.length === 0) {
@@ -133,7 +133,7 @@ export default function ChatWidget() {
     setSending(true)
 
     try {
-      const reply = await sendChatMessage(message, user?.id, pageContext)
+      const reply = await sendChatMessage(message, pageContext)
       setMessages((current) => [
         ...current,
         { role: 'assistant', content: reply.reply, products: reply.products },
