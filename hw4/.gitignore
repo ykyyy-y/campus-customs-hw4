@@ -1,0 +1,22 @@
+# The database and the product images are NOT committed (assignment requirement).
+data/
+data.zip
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# Node
+node_modules/
+dist/
+*.local
+
+# Editor / OS
+.DS_Store
+.vscode/
+
+# A corrupted audit trail is moved aside rather than deleted; the copy is not a deliverable.
+output/audit_trail.corrupt.json
+output/audit_trail.tmp

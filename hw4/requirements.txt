@@ -1,0 +1,22 @@
+# Campus Customs backend — dependencies
+#   python -m venv .venv              (from the HW 4 folder)
+#   .venv/Scripts/python.exe -m pip install -r requirements.txt
+#
+# Run the API from the backend folder:
+#   uvicorn main:app --reload --port 8000
+
+# Web API
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+
+# Types and validation
+pydantic==2.13.5
+email-validator==2.3.0
+
+# Agent framework
+pydantic-ai-slim[openai]==2.52.0
+
+# Model access through the Portkey gateway
+openai==3.22.1
+portkey-ai==2.3.4
+python-dotenv==1.2.3

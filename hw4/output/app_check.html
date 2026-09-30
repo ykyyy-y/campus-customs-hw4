@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Campus Customs — App Check</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --blush: #fde8ed;
+        --ink: #1e293b;
+        --ink-deep: #0f172a;
+        --ink-soft: #475569;
+        --ink-faint: #64748b;
+        --violet: #8b5cf6;
+        --violet-deep: #6d38e0;
+        --violet-soft: #ede6ff;
+        --line: rgba(30, 41, 59, 0.1);
+        --ok: #12714a;
+        --ok-bg: #e7f8ef;
+        --display: 'Syne', Georgia, serif;
+        --sans: 'Plus Jakarta Sans', -apple-system, 'Segoe UI', sans-serif;
+        --shadow: 0 2px 6px rgba(30, 41, 59, 0.05), 0 18px 46px rgba(178, 58, 98, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        color: var(--ink);
+        line-height: 1.65;
+        background: var(--blush);
+        background-image:
+          radial-gradient(1100px 560px at 6% -8%, #fff 0%, transparent 60%),
+          radial-gradient(900px 500px at 96% 0%, var(--violet-soft) 0%, transparent 58%);
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+      header.page-head { margin-bottom: 2.5rem; }
+      .kicker {
+        font-size: 0.68rem; font-weight: 800; letter-spacing: 0.2em;
+        text-transform: uppercase; color: var(--violet-deep); margin: 0 0 0.6rem;
+      }
+      h1 {
+        font-family: var(--display); font-size: clamp(2.1rem, 5vw, 3.1rem);
+        letter-spacing: -0.035em; line-height: 1.05; color: var(--ink-deep); margin: 0 0 0.75rem;
+      }
+      .sub { font-size: 1.04rem; color: var(--ink-soft); max-width: 68ch; margin: 0; }
+      .meta {
+        display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.25rem;
+      }
+      .tag {
+        font-size: 0.78rem; font-weight: 700; padding: 0.3rem 0.75rem;
+        border-radius: 999px; background: #fff; border: 1px solid var(--line); color: var(--ink-soft);
+      }
+      .tag.pass { background: var(--ok-bg); color: var(--ok); border-color: transparent; }
+
+      section.check {
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 1.9rem;
+        margin-bottom: 2.25rem;
+        box-shadow: var(--shadow);
+      }
+      section.check h2 {
+        font-family: var(--display); font-size: 1.5rem; letter-spacing: -0.025em;
+        color: var(--ink-deep); margin: 0 0 0.35rem;
+        display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+      }
+      .num {
+        display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none;
+        border-radius: 11px; background: linear-gradient(140deg, var(--ink-deep), var(--violet-deep));
+        color: #fff; font-size: 0.95rem; font-weight: 800; font-family: var(--sans);
+      }
+      .asked {
+        font-size: 0.92rem; color: var(--ink-soft); margin: 0.2rem 0 1.15rem;
+      }
+      .asked code {
+        background: var(--violet-soft); color: var(--violet-deep); font-weight: 700;
+        padding: 0.12rem 0.45rem; border-radius: 6px; font-family: var(--sans); font-size: 0.9rem;
+      }
+      figure { margin: 0 0 1.1rem; }
+      figure img {
+        width: 100%; display: block; border-radius: 16px;
+        border: 1px solid var(--line); box-shadow: var(--shadow); background: #fff;
+      }
+      figcaption {
+        font-size: 0.8rem; color: var(--ink-faint); margin-top: 0.55rem; text-align: center;
+      }
+      .proves { font-size: 0.98rem; color: var(--ink); margin: 0 0 1.1rem; }
+      .proves strong { color: var(--violet-deep); }
+      table {
+        width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 0.4rem;
+      }
+      caption {
+        caption-side: top; text-align: left; font-size: 0.68rem; font-weight: 800;
+        letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint);
+        padding-bottom: 0.5rem;
+      }
+      th, td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line); }
+      th { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+      td.match { color: var(--ok); font-weight: 700; }
+      tbody tr:last-child td { border-bottom: none; }
+      code.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; }
+      footer {
+        font-size: 0.85rem; color: var(--ink-faint); border-top: 1px solid var(--line);
+        padding-top: 1.5rem; margin-top: 1rem;
+      }
+      footer strong { color: var(--ink-deep); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <p class="kicker">Campus Customs · HW 4 · Problem 11</p>
+        <h1>App check: testing the live site</h1>
+        <p class="sub">
+          Three checks run against the running application — React + Vite front end on
+          <code class="mono">:5173</code>, FastAPI + PydanticAI backend on
+          <code class="mono">:8000</code>, reading the real
+          <code class="mono">campus_customs.db</code>. Every screenshot below is an
+          unedited capture of the live app, and every number the agent states is compared
+          against the database underneath it.
+        </p>
+        <div class="meta">
+          <span class="tag">Tested 30 September 2026</span>
+          <span class="tag">Model: gpt-5.6-luna via Portkey</span>
+          <span class="tag">102 products · 612 stock rows</span>
+          <span class="tag pass">3 / 3 checks passed</span>
+        </div>
+      </header>
+
+      <!-- ============================================================ 1 -->
+      <section class="check">
+        <h2><span class="num">1</span> Chat checks an item's inventory level</h2>
+        <p class="asked">
+          On the Basic Hoodie Big Yale product page, asked Bailey:
+          <code>How many of this hoodie do you have left in each size?</code>
+        </p>
+
+        <figure>
+          <img
+            src="app_check_images/inventory.png"
+            alt="Product page for Basic Hoodie Big Yale with the chat panel open, showing per-size stock counts"
+          />
+          <figcaption>
+            The product page and the chat reply in one frame — both read from the same
+            database.
+          </figcaption>
+        </figure>
+
+        <p class="proves">
+          Bailey returned a per-size breakdown — <strong>XS: 15, S: 5, M: 5, L: 8, XL: only
+          2 left, XXL: 25</strong> — that matches the <code class="mono">inventory</code>
+          table exactly, and the product card it attached shows the real
+          <strong>$68.00</strong> from <code class="mono">catalogue.price</code>. The proof
+          is visible without leaving the screenshot: the page's own size tiles on the left
+          (XS 15 in stock, S 5 in stock, XXL 25 in stock) were rendered by the REST API,
+          the numbers on the right were produced by the agent's
+          <code class="mono">get_stock_by_size</code> tool call, and the two agree. The
+          agent also volunteered that XL is down to its last 2 rather than reporting a bare
+          quantity, which is the low-stock wording the prompt asks for.
+        </p>
+
+        <table>
+          <caption>Agent answer vs. database</caption>
+          <thead>
+            <tr><th>Size</th><th>Bailey said</th><th><code class="mono">inventory</code> table</th><th>Match</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>XS</td><td>15</td><td>15</td><td class="match">✓</td></tr>
+            <tr><td>S</td><td>5</td><td>5</td><td class="match">✓</td></tr>
+            <tr><td>M</td><td>5</td><td>5</td><td class="match">✓</td></tr>
+            <tr><td>L</td><td>8</td><td>8</td><td class="match">✓</td></tr>
+            <tr><td>XL</td><td>only 2 left</td><td>2</td><td class="match">✓</td></tr>
+            <tr><td>XXL</td><td>25</td><td>25</td><td class="match">✓</td></tr>
+            <tr><td>Price</td><td>$68.00</td><td>68.0</td><td class="match">✓</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ============================================================ 2 -->
+      <section class="check">
+        <h2><span class="num">2</span> A category question puts product cards on the page</h2>
+        <p class="asked">
+          On the Products page, asked Bailey:
+          <code>What hoodies do you have?</code>
+        </p>
+
+        <figure>
+          <img
+            src="app_check_images/search_cards.png"
+            alt="Products page showing a Bailey found these for you strip with five hoodie cards, plus matching cards inside the chat panel"
+          />
+          <figcaption>
+            The same five matches rendered twice: as compact cards inside the reply, and as
+            a full strip on the page itself.
+          </figcaption>
+        </figure>
+
+        <p class="proves">
+          Asking about a <em>category</em> rather than a named product caused the agent to
+          search the catalogue and return structured matches, which the front end rendered
+          as real product cards — each with image, name, price
+          (<strong>$68.00</strong> on all five), a short description and a floating live
+          stock badge. The screenshot shows the feature working on both surfaces at once:
+          the chat panel on the right holds compact cards ending in
+          <em>“Show these on the Products page →”</em>, while the page itself has grown a
+          highlighted strip headed
+          <strong>“Bailey found these for you — 5 matches for ‘What hoodies do you have?’”</strong>.
+          Because both are rendered by the same
+          <code class="mono">ProductCard</code> component, clicking any of them opens the
+          same single-item detail view built in Problem 3.
+        </p>
+
+        <table>
+          <caption>Cards returned vs. database</caption>
+          <thead>
+            <tr><th>Card shown</th><th>Price on card</th><th><code class="mono">catalogue.price</code></th><th>Match</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Basic Hoodie Big Yale</td><td>$68.00</td><td>68.0</td><td class="match">✓</td></tr>
+            <tr><td>Champion Reverse Weave Hoodie 1</td><td>$68.00</td><td>68.0</td><td class="match">✓</td></tr>
+            <tr><td>District Vit Hoodie Vintage Bulldog</td><td>$68.00</td><td>68.0</td><td class="match">✓</td></tr>
+            <tr><td>Crew Left Chest Hoodie</td><td>$68.00</td><td>68.0</td><td class="match">✓</td></tr>
+            <tr><td>Yale Aunt Hoodie</td><td>$68.00</td><td>68.0</td><td class="match">✓</td></tr>
+          </tbody>
+        </table>
+        <p class="proves" style="margin-top: 0.9rem; font-size: 0.9rem; color: var(--ink-soft)">
+          27 hoodies match in total; the agent showed the best five and pointed the shopper
+          to the Products page for the rest, rather than claiming five is all there is.
+        </p>
+      </section>
+
+      <!-- ============================================================ 3 -->
+      <section class="check">
+        <h2><span class="num">3</span> Usability feature: “Shop by your size” filter</h2>
+        <p class="asked">
+          From Problem 9 — on the Products page, selected size
+          <code>L</code> and ticked <code>In stock only</code>.
+        </p>
+
+        <figure>
+          <img
+            src="app_check_images/size_filter.png"
+            alt="Products page filter bar with the L size chip active, In stock only ticked, 78 items, and a filter summary line"
+          />
+          <figcaption>
+            Size chips, the in-stock toggle, the live result count and the active-filter
+            summary.
+          </figcaption>
+        </figure>
+
+        <p class="proves">
+          The <strong>L</strong> chip is active (filled dark), <strong>In stock only</strong>
+          is ticked, the count has dropped from 102 to <strong>78 items</strong>, and the
+          summary line underneath reads <em>“Showing only what we have in size L · in stock
+          only”</em> with a <em>Clear all</em> reset. This is the availability-aware filter,
+          not a cosmetic one: it reads
+          <code class="mono">sizes_in_stock</code>, which is computed from the
+          <code class="mono">inventory</code> table, so a product whose L row sits at zero
+          is removed rather than shown and disappointing the shopper on click. Querying the
+          database directly returns the same figure — <strong>78 of 102 products have L
+          stock above zero</strong>. The filter state is also mirrored into the URL as
+          <code class="mono">?size=L&amp;stock=in</code>, so the browser Back button steps
+          through filter changes and a filtered view can be bookmarked or sent to a
+          customer.
+        </p>
+
+        <table>
+          <caption>Filter result vs. database</caption>
+          <thead>
+            <tr><th>Filter</th><th>Site shows</th><th>Database</th><th>Match</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>No filter</td><td>102 items</td><td>102 products</td><td class="match">✓</td></tr>
+            <tr><td>Size L, in stock</td><td>78 items</td><td>78 products with L&nbsp;&gt;&nbsp;0</td><td class="match">✓</td></tr>
+            <tr><td>URL state</td><td><code class="mono">?size=L&amp;stock=in</code></td><td>—</td><td class="match">✓</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <footer>
+        <p>
+          <strong>How these were captured.</strong> Both servers were running
+          (<code class="mono">uvicorn main:app --port 8000</code> from
+          <code class="mono">backend/</code>, and <code class="mono">npm run dev</code> from
+          <code class="mono">frontend/</code>), and each screenshot is a direct capture of
+          the browser at a 1280×900 viewport. The agent replies are genuine model calls
+          through Portkey, not fixtures. Database figures were read from
+          <code class="mono">data/campus_customs.db</code> after the fact and compared line
+          by line against what the screenshots show.
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>
